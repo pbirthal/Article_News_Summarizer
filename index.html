@@ -192,53 +192,34 @@
             }
         }
 
+        // --- NEW Gemini API Call via our Secure Netlify Function ---
+        async function callGemini(prompt) {
+            // This is the endpoint for the serverless function we created
+            const secureApiUrl = '/.netlify/functions/summarize';
 
-        // --- Gemini API Call with Exponential Backoff ---
-        async function callGemini(prompt, maxRetries = 5) {
-            const apiKey = ""; // API key will be injected by the environment
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+            try {
+                const response = await fetch(secureApiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: prompt }) // Send the prompt in the body
+                });
 
-            const payload = {
-                contents: [{
-                    parts: [{
-                        text: prompt
-                    }]
-                }]
-            };
-
-            let delay = 1000;
-            for (let i = 0; i < maxRetries; i++) {
-                try {
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (!response.ok) {
-                        if (response.status >= 500) {
-                           throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                        const errorData = await response.json();
-                        throw new Error(`API Error: ${errorData.error.message}`);
-                    }
-
-                    const data = await response.json();
-                    
-                    if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
-                        return data.candidates[0].content.parts[0].text;
-                    } else {
-                        throw new Error("Received an empty or invalid response from the API.");
-                    }
-
-                } catch (error) {
-                    console.warn(`Attempt ${i + 1} failed. Retrying in ${delay / 1000}s...`);
-                    if (i === maxRetries - 1) {
-                        throw error;
-                    }
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    delay *= 2;
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to get summary from server.');
                 }
+
+                const data = await response.json();
+                if (data.summary) {
+                    return data.summary;
+                } else {
+                    throw new Error("Received an empty response from the server.");
+                }
+
+            } catch (error) {
+                console.error("Error calling secure function:", error);
+                // Re-throw the error so the summarizeArticle function can catch it
+                throw error;
             }
         }
     </script>
