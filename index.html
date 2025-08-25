@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News Summarizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 4px solid #3498db;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-4xl">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-900">📰 News Summarizer</h1>
+            <p class="text-lg text-gray-600 mt-2">Get the top 10 bullet points from any news article.</p>
+        </header>
+
+        <!-- Tab Navigation -->
+        <div class="mb-4 border-b border-gray-200">
+            <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="myTab" role="tablist">
+                <li class="mr-2" role="presentation">
+                    <button class="inline-block p-4 border-b-2 rounded-t-lg" id="world-tab" type="button" role="tab" aria-controls="world" aria-selected="true">World News</button>
+                </li>
+                <li class="mr-2" role="presentation">
+                    <button class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300" id="india-tab" type="button" role="tab" aria-controls="india" aria-selected="false">India News</button>
+                </li>
+                <li class="mr-2" role="presentation">
+                    <button class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300" id="finance-tab" type="button" role="tab" aria-controls="finance" aria-selected="false">Finance News</button>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Tab Content -->
+        <div id="tabContent">
+            <!-- World News Tab -->
+            <div class="tab-content active p-4 bg-white rounded-lg shadow" id="world" role="tabpanel" aria-labelledby="world-tab">
+                <h2 class="text-2xl font-semibold mb-4">World News Summarizer</h2>
+                <input type="url" id="world-news-url" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Paste article URL here...">
+                <p class="text-center text-gray-500 my-2">OR</p>
+                <textarea id="world-news-input" class="w-full h-48 p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Paste the full article text here..."></textarea>
+                <button onclick="summarizeArticle('world')" class="mt-4 w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-300">Summarize</button>
+                <div id="world-loader" class="hidden mx-auto mt-6 loader"></div>
+                <div id="world-summary" class="mt-6 p-4 border border-gray-200 rounded-lg bg-gray-50"></div>
+            </div>
+
+            <!-- India News Tab -->
+            <div class="tab-content p-4 bg-white rounded-lg shadow" id="india" role="tabpanel" aria-labelledby="india-tab">
+                <h2 class="text-2xl font-semibold mb-4">India News Summarizer</h2>
+                <input type="url" id="india-news-url" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Paste article URL here...">
+                <p class="text-center text-gray-500 my-2">OR</p>
+                <textarea id="india-news-input" class="w-full h-48 p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Paste the full article text here..."></textarea>
+                <button onclick="summarizeArticle('india')" class="mt-4 w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition duration-300">Summarize</button>
+                <div id="india-loader" class="hidden mx-auto mt-6 loader"></div>
+                <div id="india-summary" class="mt-6 p-4 border border-gray-200 rounded-lg bg-gray-50"></div>
+            </div>
+
+            <!-- Finance News Tab -->
+            <div class="tab-content p-4 bg-white rounded-lg shadow" id="finance" role="tabpanel" aria-labelledby="finance-tab">
+                <h2 class="text-2xl font-semibold mb-4">Finance News Summarizer</h2>
+                <input type="url" id="finance-news-url" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Paste article URL here...">
+                <p class="text-center text-gray-500 my-2">OR</p>
+                <textarea id="finance-news-input" class="w-full h-48 p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Paste the full article text here..."></textarea>
+                <button onclick="summarizeArticle('finance')" class="mt-4 w-full bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-purple-700 transition duration-300">Summarize</button>
+                <div id="finance-loader" class="hidden mx-auto mt-6 loader"></div>
+                <div id="finance-summary" class="mt-6 p-4 border border-gray-200 rounded-lg bg-gray-50"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Tab Management ---
+        const tabs = document.querySelectorAll('[role="tab"]');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => {
+                    t.setAttribute('aria-selected', 'false');
+                    t.classList.remove('border-blue-600', 'text-blue-600');
+                    t.classList.add('hover:text-gray-600', 'hover:border-gray-300');
+                });
+                tabContents.forEach(c => c.classList.remove('active'));
+
+                tab.setAttribute('aria-selected', 'true');
+                tab.classList.add('border-blue-600', 'text-blue-600');
+                const contentId = tab.getAttribute('aria-controls');
+                document.getElementById(contentId).classList.add('active');
+            });
+        });
+        
+        document.getElementById('world-tab').click();
+        
+        document.getElementById('world-news-input').value = `United Nations, New York – The United Nations General Assembly has passed a landmark resolution aimed at combating climate change through international cooperation on renewable energy technologies. The resolution, which was approved by a sweeping majority, calls for the establishment of a global fund to support developing nations in their transition from fossil fuels to sustainable energy sources. It emphasizes the need for technology transfer and capacity building, ensuring that all countries can participate in and benefit from the green energy revolution. Key provisions of the resolution include financial commitments from developed countries, the creation of a technology-sharing platform, and a framework for monitoring progress towards renewable energy targets. The UN Secretary-General hailed the resolution as a "pivotal moment" in the global fight against climate change, urging member states to translate their commitments into concrete actions. However, some critics argue that the resolution lacks stringent enforcement mechanisms, raising concerns about its long-term effectiveness. Despite these concerns, the resolution is seen as a significant step forward, fostering a sense of shared responsibility and collective action in addressing one of the most pressing challenges of our time. Environmental groups have largely welcomed the move, calling it a crucial foundation upon which more ambitious climate policies can be built. The focus now shifts to the implementation phase, where the international community's resolve will be truly tested.`;
+
+        // --- Summarization Logic ---
+        async function summarizeArticle(category) {
+            const urlInput = document.getElementById(`${category}-news-url`);
+            const textInput = document.getElementById(`${category}-news-input`);
+            const summaryElement = document.getElementById(`${category}-summary`);
+            const loaderElement = document.getElementById(`${category}-loader`);
+            
+            const articleUrl = urlInput.value.trim();
+            const articleText = textInput.value.trim();
+
+            if (!articleUrl && !articleText) {
+                summaryElement.innerHTML = '<p class="text-red-500">Please provide a URL or paste an article first.</p>';
+                return;
+            }
+
+            loaderElement.classList.remove('hidden');
+            summaryElement.innerHTML = '';
+
+            try {
+                let contentToSummarize = '';
+                if (articleUrl) {
+                    contentToSummarize = await fetchArticleContent(articleUrl);
+                } else {
+                    contentToSummarize = articleText;
+                }
+
+                if (!contentToSummarize) {
+                     throw new Error("Could not retrieve article content.");
+                }
+
+                const prompt = `Summarize the following news article into the top 10 most important bullet points:\n\n---\n\n${contentToSummarize}`;
+                const summaryText = await callGemini(prompt);
+                
+                const bulletPoints = summaryText.split('\n').map(item => item.replace(/^-|^\*|^\d+\.\s*/, '').trim()).filter(item => item);
+                let html = '<h3 class="text-xl font-semibold mb-3">Summary:</h3><ul class="list-disc list-inside space-y-2">';
+                bulletPoints.forEach(point => {
+                    html += `<li>${point}</li>`;
+                });
+                html += '</ul>';
+                summaryElement.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error:', error);
+                summaryElement.innerHTML = `<p class="text-red-500">Failed to summarize the article. ${error.message}. Try pasting the text directly.</p>`;
+            } finally {
+                loaderElement.classList.add('hidden');
+            }
+        }
+
+        // --- Fetch Article Content from URL ---
+        async function fetchArticleContent(url) {
+            // Using a CORS proxy to bypass browser security restrictions. This might not always be reliable.
+            const proxyUrl = 'https://api.allorigins.win/raw?url=';
+            try {
+                const response = await fetch(`${proxyUrl}${encodeURIComponent(url)}`);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch the article. Status: ${response.status}`);
+                }
+                const htmlText = await response.text();
+                
+                // Parse the HTML and extract text from paragraph tags
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlText, 'text/html');
+                const paragraphs = Array.from(doc.querySelectorAll('p')).map(p => p.textContent.trim()).filter(Boolean);
+                
+                if (paragraphs.length === 0) {
+                    // Fallback for pages that don't use <p> tags extensively
+                    return doc.body.textContent.trim();
+                }
+
+                return paragraphs.join('\n\n');
+            } catch (error) {
+                console.error("Fetching error:", error);
+                throw new Error("Could not fetch content from the URL. It might be due to network issues or website restrictions (CORS).");
+            }
+        }
+
+
+        // --- Gemini API Call with Exponential Backoff ---
+        async function callGemini(prompt, maxRetries = 5) {
+            const apiKey = ""; // API key will be injected by the environment
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            const payload = {
+                contents: [{
+                    parts: [{
+                        text: prompt
+                    }]
+                }]
+            };
+
+            let delay = 1000;
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        if (response.status >= 500) {
+                           throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        const errorData = await response.json();
+                        throw new Error(`API Error: ${errorData.error.message}`);
+                    }
+
+                    const data = await response.json();
+                    
+                    if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+                        return data.candidates[0].content.parts[0].text;
+                    } else {
+                        throw new Error("Received an empty or invalid response from the API.");
+                    }
+
+                } catch (error) {
+                    console.warn(`Attempt ${i + 1} failed. Retrying in ${delay / 1000}s...`);
+                    if (i === maxRetries - 1) {
+                        throw error;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2;
+                }
+            }
+        }
+    </script>
+
+</body>
+</html>
